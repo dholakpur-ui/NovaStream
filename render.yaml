@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: video-streaming-app
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: true
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: temp-storage
+      mountPath: /opt/render/project/src/temp
+      sizeGB: 1
