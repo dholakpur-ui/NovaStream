@@ -28,6 +28,12 @@
             if(data.success) window.location.href = '/';
             else alert("Unauthorized access denied.");
         }
+        // Add this inside your <script> tag
+document.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        login();
+    }
+});
     </script>
 </body>
 </html>
