@@ -1,295 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>NovaStream | Cinematic Video Vault</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-<style>
-:root {
-  --pink:#ff7eb9;
-  --bg:#0f0f0f;
-  --border:#333;
-}
-button:active { transform: scale(0.95); }
-.video-card:active { transform: scale(0.99); }
-
-body {
-  margin:0; background:var(--bg); color:white;
-  font-family:Roboto,sans-serif; padding-top:70px;
-}
-
-/* NAVBAR */
-.navbar{
-  position:fixed;top:0;width:100%;height:60px;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;background:#0f0f0f;border-bottom:1px solid var(--border);
-  z-index:1000; box-sizing: border-box;
-}
-.logo{font-size:22px;font-weight:900;cursor:pointer}
-.logo span{color:var(--pink);text-shadow:0 0 10px var(--pink)}
-
-.search-area{display:flex;gap:10px;flex:0 1 420px}
-.search-area input,select{
-  background:#121212;color:white;border:1px solid var(--border);
-  padding:8px 14px;border-radius:20px;outline:none;width:100%;
-}
-
-.btn-create{
-  background:var(--pink);border:none;border-radius:25px;
-  padding:10px 18px;font-weight:bold;cursor:pointer;
-}
-.btn-logout{
-  background:none;border:1px solid var(--border);
-  color:#aaa;padding:8px 15px;border-radius:20px;cursor:pointer;
-  transition: 0.3s;
-}
-.btn-logout:hover { color: white; border-color: #ff4d4d; }
-
-/* GRID */
-.container{max-width:1800px;margin:auto;padding:24px}
-.video-grid{
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:25px;
-}
-.video-card{cursor:pointer; background: #141414; padding: 10px; border-radius: 12px; border: 1px solid transparent; transition: 0.3s;}
-.video-card:hover { border-color: var(--pink); background: #1a1a1a; }
-
-.thumbnail-box{
-  aspect-ratio:16/9;border-radius:12px;overflow:hidden;
-  background:black; position:relative;
-}
-.thumbnail-box img{width:100%;height:100%;object-fit:cover}
-
-.thumb-duration{
-  position:absolute;bottom:8px;right:8px;
-  background:rgba(0,0,0,.8); padding:3px 6px;border-radius:4px;
-  font-size:11px; font-weight: bold; color: white;
-}
-
-/* PLAYER */
-#playerView{
-  display:none;max-width:1600px;margin:auto;
-  padding:24px;gap:24px;grid-template-columns:1fr 380px;
-}
-.main-video-col video{width:100%;border-radius:12px;background:black; cursor: pointer;}
-.sidebar-col{display:flex;flex-direction:column;gap:14px}
-
-/* MODAL */
-.modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.9);
-  display:none;align-items:center;justify-content:center;z-index:2000;
-}
-.modal-content{
-  background:#1e1e1e;width:460px;padding:30px;
-  border-radius:18px;border:1px solid var(--pink);
-}
-input,textarea{width:100%;background:black;color:white;border:1px solid #333;padding:12px;border-radius:8px; margin-bottom: 10px; box-sizing: border-box;}
-#timeSlider{width:100%;accent-color:var(--pink); margin: 10px 0;}
-</style>
-</head>
-
-<body>
-
-<header class="navbar">
-  <div class="logo" onclick="goHome()">Nova<span>Stream</span></div>
-
-  <div class="search-area">
-    <select id="playlistFilter" onchange="applyFilters()">
-      <option value="all">All Playlists</option>
-    </select>
-    <input id="searchInput" placeholder="Search Vault..." oninput="applyFilters()">
-  </div>
-
-  <div style="display:flex; gap:10px;">
-    <button class="btn-create" onclick="toggleModal(true)"><i class="fas fa-plus"></i> Create</button>
-    <button class="btn-logout" onclick="location.href='/api/logout'"><i class="fas fa-sign-out-alt"></i></button>
-  </div>
-</header>
-
-<main class="container" id="homeView">
-  <div class="video-grid" id="vGrid"></div>
-</main>
-
-<main id="playerView">
-  <div class="main-video-col">
-    <video id="mainPlayer" controls autoplay></video>
-    <h2 id="viewTitle" style="margin: 20px 0 10px 0;"></h2>
-    <div id="viewDesc" style="background:#222;padding:15px;border-radius:10px;color:#ccc; line-height: 1.5;"></div>
-  </div>
-  <div class="sidebar-col" id="sidebarGrid"></div>
-</main>
-
-<div class="modal" id="upModal">
-  <div class="modal-content">
-    <div id="prog" style="display:none; margin-top:10px;">
-      <div style="background:#333; height:5px; border-radius:5px;">
-        <div id="pBar" style="background:var(--pink); width:0%; height:100%; transition:0.3s;"></div>
-      </div>
-    </div>
-    <h2 style="color:var(--pink)">Upload to Vault</h2>
-    <input id="title" placeholder="Video Title">
-    <textarea id="desc" placeholder="Video Description..." rows="3"></textarea>
-    
-    <label style="font-size: 12px; color: #aaa;">Video File:</label>
-    <input type="file" id="fIn" accept="video/*" style="border:none; padding: 5px 0;">
-    
-    <label style="font-size: 12px; color: #aaa;">Custom Thumbnail (Optional):</label>
-    <input type="file" id="thumbIn" accept="image/*" style="border:none; padding: 5px 0;">
-    
-    <button class="btn-create" style="width:100%; margin-top:10px;" onclick="handleUpload()">Publish Video</button>
-    <button onclick="toggleModal(false)" style="background:none;border:none;color:#777;margin-top:10px; width: 100%; cursor:pointer;">Cancel</button>
-    </div>
-</div>
-
-<script>
-let allVideos=[];
-
-const formatDuration = s => {
-  if(!s || isNaN(s)) return "0:00";
-  const mins = Math.floor(s / 60);
-  const secs = Math.floor(s % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
-
-async function loadVideos(){
-  const r = await fetch('/api/videos');
-  if(r.status === 401) return location.href = '/login.html'; // RESTORED LOGIN SHIELD
-  allVideos = await r.json();
-  updatePlaylistDropdown();
-  renderGrid(allVideos);
-}
-
-function renderGrid(list){
-  const grid = document.getElementById('vGrid');
-  grid.innerHTML = list.map(v => {
-    // Replace the 'const thumb = ...' line inside renderGrid with this:
-    const thumb = v.customThumbnail ? v.customThumbnail : v.url.replace('/upload/', `/upload/so_${v.thumbTime || 0.5},w_500,c_fill,ar_16:9/`).replace('.mp4', '.jpg');
-    return `
-    <div class="video-card">
-      <div class="thumbnail-box" onclick="openTheaterMode('${v.id}')">
-        <img src="${thumb}">
-        <div class="thumb-duration">${formatDuration(v.duration)}</div>
-      </div>
-      <h3 style="margin: 12px 0 4px 0; font-size: 16px;">${v.title}</h3>
-      <p style="color:#aaa; font-size:12px; margin-bottom: 12px;">${v.playlist || 'General'} • ${(v.size/1e6).toFixed(1)} MB</p>
-      <div style="display:flex; gap:8px;">
-        <button onclick="openEditModal('${v.id}')" style="background:none; border:1px solid #444; color:var(--pink); padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px;">Edit</button>
-        <button onclick="navigator.clipboard.writeText('${v.url}'); alert('Copied!')" style="background:none; border:1px solid #444; color:#00d4ff; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px;">Share</button>
-        <button onclick="deleteVid('${v.id}')" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:11px;">Delete</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function applyFilters(){
-  let q = document.getElementById('searchInput').value.toLowerCase();
-  let p = document.getElementById('playlistFilter').value;
-  let list = allVideos;
-  if(p !== "all") list = list.filter(v => v.playlist === p);
-  if(q) list = list.filter(v => v.title.toLowerCase().includes(q));
-  renderGrid(list);
-}
-
-function updatePlaylistDropdown(){
-  const sets = [...new Set(allVideos.map(v => v.playlist).filter(Boolean))];
-  const dropdown = document.getElementById('playlistFilter');
-  dropdown.innerHTML = '<option value="all">All Playlists</option>' + 
-    sets.map(p => `<option value="${p}">${p}</option>`).join('');
-}
-
-function openTheaterMode(id){
-  const v = allVideos.find(x => x.id === id);
-  document.getElementById('homeView').style.display = 'none';
-  document.getElementById('playerView').style.display = 'grid';
-  window.scrollTo(0,0);
-  
-  const main = document.getElementById('mainPlayer');
-  main.src = v.url;
-  main.onclick = () => main.paused ? main.play() : main.pause();
-  
-  document.getElementById('viewTitle').innerText = v.title;
-  // RESTORED DESCRIPTION MAPPING
-  document.getElementById('viewDesc').innerText = v.description || 'No description provided.';
-  
-  const sidebarGrid = document.getElementById('sidebarGrid');
-  sidebarGrid.innerHTML = allVideos.filter(x => x.id !== id).map(s => {
-    const t = s.url.replace('/upload/', `/upload/so_${s.thumbTime || 0.5},w_180,c_fill,ar_16:9/`).replace('.mp4', '.jpg');
-    return `
-    <div style="display:flex; gap:10px; cursor:pointer; margin-bottom: 10px;" onclick="openTheaterMode('${s.id}')">
-      <div style="position:relative; flex-shrink:0;">
-        <img src="${t}" style="width:140px; border-radius:8px; border: 1px solid #333;">
-        <div class="thumb-duration" style="font-size:9px; padding:2px 4px;">${formatDuration(s.duration)}</div>
-      </div>
-      <div style="font-size:13px; font-weight:500; line-height:1.2;">${s.title}</div>
-    </div>`;
-  }).join('');
-}
-
-function openEditModal(id){
-  document.querySelectorAll('.modal:not(#upModal)').forEach(m => m.remove());
-  const v = allVideos.find(x => x.id === id);
-  const m = document.createElement('div');
-  m.className = 'modal'; m.style.display = 'flex';
-  m.innerHTML = `
-  <div class="modal-content">
-    <h2 style="color:var(--pink); margin-top:0;">Video Settings</h2>
-    <img id="thumbPreview" src="${v.url.replace('/upload/', `/upload/so_${v.thumbTime || 0.5},w_500/`).replace('.mp4', '.jpg')}" style="width:100%; border-radius:10px; border: 1px solid #444;">
-    <p style="text-align:center; font-size:11px; color:#aaa; margin:10px 0;">Pick a thumbnail frame</p>
-    <input type="range" id="timeSlider" min="0" max="${Math.floor(v.duration || 60)}" step="0.5" value="${v.thumbTime || 0.5}"
-      oninput="document.getElementById('thumbPreview').src='${v.url}'.replace('/upload/', '/upload/so_'+this.value+',w_500/').replace('.mp4','.jpg')">
-    <input id="editPlaylist" value="${v.playlist || ''}" placeholder="Playlist Name (e.g. Movies)">
-    <button class="btn-create" onclick="saveEdit('${v.id}')" style="width:100%; margin-top: 10px;">Save All Changes</button>
-    <a href="${v.url}" download="${v.title}.mp4" style="text-decoration:none;"><button style="width:100%; margin-top:10px; background:#222; color:white; border:1px solid #444; padding:10px; border-radius:8px; cursor:pointer;">Download Video</button></a>
-    <button onclick="this.closest('.modal').remove()" style="background:none; border:none; color:#777; margin-top:10px; width:100%; cursor:pointer;">Cancel</button>
-  </div>`;
-  document.body.appendChild(m);
-}
-
-async function saveEdit(id){
-  const time = document.getElementById('timeSlider').value;
-  const playlist = document.getElementById('editPlaylist').value;
-  await fetch(`/api/videos/${encodeURIComponent(id)}/update`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ thumbTime: time, playlist: playlist })
-  });
-  location.reload();
-}
-
-function handleUpload(){
-  const f = document.getElementById('fIn').files[0];
-  const customThumb = document.getElementById('thumbIn').files[0]; // New
-  if(!f) return alert("Select a video file");
-
-  const fd = new FormData();
-  fd.append('video', f);
-  if(customThumb) fd.append('thumbnail', customThumb); // Append the image
-  fd.append('title', document.getElementById('title').value);
-  fd.append('description', document.getElementById('desc').value);
-
-  document.getElementById('prog').style.display = 'block';
-  const x = new XMLHttpRequest();
-  x.upload.onprogress = e => document.getElementById('pBar').style.width = Math.round(e.loaded/e.total*100)+'%';
-  x.onload = () => location.reload();
-  x.open('POST','/api/upload');
-  x.send(fd);
-}
-
-async function deleteVid(id){
-  if(confirm("Delete forever?")){
-    await fetch(`/api/videos/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    loadVideos();
-  }
-}
-
-function toggleModal(s){ document.getElementById('upModal').style.display = s ? 'flex' : 'none'; }
-function goHome(){ location.reload(); }
-
-loadVideos();
-</script>
-</body>
-</html>
-
-
 <!-- <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -612,3 +320,651 @@ loadVideos();
   </script>
 </body>
 </html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaStream | Cinematic Video Vault</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --pink: #ff7eb9;
+      --pink-glow: rgba(255, 126, 185, 0.3);
+      --bg: #0f0f0f;
+      --header-bg: #0f0f0f;
+      --card-bg: #1e1e1e;
+      --text: #ffffff;
+      --text-muted: #aaaaaa;
+      --border: #333333;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      overflow-x: hidden;
+    }
+
+    /* --- NAVIGATION BAR --- */
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: 60px;
+      background: var(--header-bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+    }
+
+    .logo { 
+      font-size: 22px; 
+      font-weight: 900; 
+      cursor: pointer; 
+      letter-spacing: -1px;
+      user-select: none;
+    }
+    .logo span { 
+      color: var(--pink); 
+      text-shadow: 0 0 10px var(--pink); 
+    }
+
+    .search-area { 
+      flex: 0 1 500px; 
+      display: flex; 
+    }
+    .search-area input {
+      width: 100%;
+      background: #121212;
+      border: 1px solid var(--border);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 40px 0 0 40px;
+      outline: none;
+      font-size: 15px;
+      transition: border-color 0.3s;
+    }
+    .search-area input:focus { 
+      border-color: var(--pink); 
+    }
+    .search-area button {
+      background: #222;
+      border: 1px solid var(--border);
+      border-left: none;
+      color: white;
+      padding: 0 20px;
+      border-radius: 0 40px 40px 0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .search-area button:hover {
+      background: #333;
+    }
+
+    .nav-actions { 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+    }
+
+    .btn-create {
+      background: var(--pink);
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .btn-create:hover { 
+      transform: scale(1.05); 
+      box-shadow: 0 0 15px var(--pink); 
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: color 0.3s, border-color 0.3s;
+    }
+    .btn-logout:hover { 
+      color: white; 
+      border-color: #ff4d4d; 
+    }
+
+    /* --- HOME VIEW (GRID) --- */
+    .container { 
+      padding: 24px; 
+      max-width: 1800px; 
+      margin: 0 auto; 
+    }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px 20px;
+    }
+
+    .video-card { 
+      cursor: pointer; 
+      border-radius: 12px; 
+      transition: transform 0.3s; 
+    }
+    .video-card:hover {
+      transform: translateY(-4px);
+    }
+    .thumbnail-box {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid transparent;
+      transition: border-color 0.3s;
+    }
+    .video-card:hover .thumbnail-box { 
+      border-color: var(--pink); 
+    }
+    .thumbnail-box video { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+    }
+    
+    .video-info { 
+      display: flex; 
+      margin-top: 12px; 
+      gap: 12px; 
+    }
+    .v-details h3 { 
+      margin: 0; 
+      font-size: 16px; 
+      line-height: 1.4;
+      font-weight: 600;
+    }
+    .v-details p { 
+      margin: 6px 0; 
+      color: var(--text-muted); 
+      font-size: 14px; 
+    }
+    .del-btn { 
+      color: #ff4d4d; 
+      background: none; 
+      border: none; 
+      font-size: 12px; 
+      cursor: pointer; 
+      padding: 0; 
+      margin-top: 8px; 
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+    .del-btn:hover { 
+      opacity: 1; 
+      text-decoration: underline; 
+    }
+
+    /* --- THEATER MODE (PLAYER VIEW) --- */
+    #playerView {
+      display: none;
+      padding: 24px 60px;
+      max-width: 1600px;
+      margin: 0 auto;
+      grid-template-columns: 1fr 400px;
+      gap: 24px;
+    }
+
+    .main-video-col video {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 12px;
+      background: #000;
+    }
+
+    .main-video-info h2 { 
+      font-size: 24px; 
+      margin: 20px 0 10px;
+      font-weight: 600;
+    }
+    .desc-box {
+      background: #272727;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+
+    .sidebar-col { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 16px; 
+    }
+    .side-card { 
+      display: flex; 
+      gap: 12px; 
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .side-card:hover {
+      transform: translateX(4px);
+    }
+    .side-thumb { 
+      width: 160px; 
+      height: 90px; 
+      border-radius: 8px; 
+      overflow: hidden; 
+      background: #000; 
+      flex-shrink: 0; 
+    }
+    .side-thumb video { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+    }
+    .side-info h4 { 
+      margin: 0; 
+      font-size: 14px; 
+      line-height: 1.3; 
+      color: #fff;
+      font-weight: 500;
+    }
+
+    /* --- UPLOAD MODAL --- */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: #1e1e1e;
+      width: 95%;
+      max-width: 500px;
+      padding: 30px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .modal-content h2 { 
+      margin-top: 0; 
+      color: var(--pink); 
+    }
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 25px;
+      font-size: 30px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.3s;
+    }
+    .close-btn:hover {
+      color: white;
+    }
+
+    .modal-content input[type="text"],
+    .modal-content textarea {
+      width: 100%;
+      background: #000;
+      border: 1px solid #333;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .modal-content input[type="text"]:focus,
+    .modal-content textarea:focus {
+      outline: none;
+      border-color: var(--pink);
+    }
+
+    /* --- PROGRESS BAR --- */
+    .prog-wrap { 
+      display: none; 
+      margin-top: 20px; 
+    }
+    .prog-bg { 
+      background: #333; 
+      height: 8px; 
+      border-radius: 10px; 
+      overflow: hidden; 
+    }
+    .prog-fill { 
+      height: 100%; 
+      background: var(--pink); 
+      width: 0%; 
+      transition: width 0.3s; 
+      box-shadow: 0 0 10px var(--pink); 
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state i {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    @media (max-width: 1000px) {
+      #playerView { 
+        grid-template-columns: 1fr; 
+        padding: 15px; 
+      }
+      .navbar {
+        padding: 0 15px;
+      }
+      .search-area {
+        flex: 1;
+        max-width: 300px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .logo {
+        font-size: 18px;
+      }
+      .search-area {
+        display: none;
+      }
+      .btn-create span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="logo" onclick="goHome()">Nova<span>Stream</span></div>
+    <div class="search-area">
+      <input type="text" id="searchInput" placeholder="Search videos..." oninput="filterVideos()">
+      <button><i class="fas fa-search"></i></button>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-create" onclick="toggleModal(true)">
+        <i class="fas fa-plus"></i>
+        <span>Create</span>
+      </button>
+      <button class="btn-logout" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="container" id="homeView">
+    <div class="video-grid" id="vGrid"></div>
+  </main>
+
+  <main id="playerView">
+    <div class="main-video-col">
+      <video id="mainPlayer" controls autoplay></video>
+      <div class="main-video-info">
+        <h2 id="viewTitle"></h2>
+        <div class="desc-box" id="viewDesc"></div>
+      </div>
+    </div>
+    <div class="sidebar-col" id="sidebarGrid"></div>
+  </main>
+
+  <div class="modal" id="upModal" onclick="closeModalOnOutsideClick(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <span class="close-btn" onclick="toggleModal(false)">&times;</span>
+      <h2>Upload to Vault</h2>
+      <input type="text" id="title" placeholder="Title" required>
+      <textarea id="desc" placeholder="Description..." rows="4"></textarea>
+      <input type="file" id="fIn" accept="video/*" style="margin: 10px 0;">
+      <button class="btn-create" style="width:100%; justify-content:center;" onclick="handleUpload()">
+        Publish
+      </button>
+      
+      <div class="prog-wrap" id="prog">
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px">
+          <span id="pStat">Uploading...</span>
+          <span id="pNum">0%</span>
+        </div>
+        <div class="prog-bg"><div class="prog-fill" id="pBar"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allVideos = [];
+
+    async function loadVideos() {
+      try {
+        const res = await fetch('/api/videos');
+        if (res.status === 401) {
+          return window.location.href = '/login.html';
+        }
+        allVideos = await res.json();
+        renderGrid(allVideos);
+      } catch (err) {
+        console.error("Error loading videos:", err);
+        showEmptyState("Unable to load videos");
+      }
+    }
+
+    function renderGrid(list) {
+      const grid = document.getElementById('vGrid');
+      
+      if (list.length === 0) {
+        showEmptyState("No videos yet. Click Create to upload your first video!");
+        return;
+      }
+
+      grid.innerHTML = list.map(v => `
+        <div class="video-card" onclick="openTheaterMode('${v.id}')">
+          <div class="thumbnail-box" onmouseenter="previewPlay(this)" onmouseleave="previewStop(this)">
+            <video src="${v.url}#t=0.5" muted loop preload="metadata"></video>
+          </div>
+          <div class="video-info">
+            <div class="v-details">
+              <h3>${escapeHtml(v.title)}</h3>
+              <p>${(v.size/1e6).toFixed(1)} MB</p>
+              <button class="del-btn" onclick="event.stopPropagation(); deleteVid('${v.id}')">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showEmptyState(message) {
+      document.getElementById('vGrid').innerHTML = `
+        <div class="empty-state" style="grid-column: 1/-1;">
+          <i class="fas fa-video"></i>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    function openTheaterMode(id) {
+      const vid = allVideos.find(v => v.id === id);
+      if (!vid) return;
+
+      document.getElementById('homeView').style.display = 'none';
+      document.getElementById('playerView').style.display = 'grid';
+      window.scrollTo(0, 0);
+
+      const mainPlayer = document.getElementById('mainPlayer');
+      mainPlayer.src = vid.url;
+      document.getElementById('viewTitle').innerText = vid.title;
+      document.getElementById('viewDesc').innerText = vid.description || "No description provided.";
+
+      const others = allVideos.filter(v => v.id !== id);
+      document.getElementById('sidebarGrid').innerHTML = others.map(v => `
+        <div class="side-card" onclick="openTheaterMode('${v.id}')">
+          <div class="side-thumb">
+            <video src="${v.url}#t=0.5" muted preload="metadata"></video>
+          </div>
+          <div class="side-info">
+            <h4>${escapeHtml(v.title)}</h4>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleUpload() {
+      const file = document.getElementById('fIn').files[0];
+      const title = document.getElementById('title').value.trim();
+
+      if (!file) {
+        alert("Please select a video file!");
+        return;
+      }
+
+      if (!title) {
+        alert("Please enter a title!");
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('video', file);
+      fd.append('title', title);
+      fd.append('description', document.getElementById('desc').value);
+
+      document.getElementById('prog').style.display = 'block';
+      
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          document.getElementById('pBar').style.width = percent + '%';
+          document.getElementById('pNum').innerText = percent + '%';
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          document.getElementById('pStat').innerText = 'Upload complete!';
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          alert("Upload failed. Please try again.");
+          document.getElementById('prog').style.display = 'none';
+        }
+      };
+
+      xhr.onerror = () => {
+        alert("Network error. Please check your connection.");
+        document.getElementById('prog').style.display = 'none';
+      };
+
+      xhr.open('POST', '/api/upload');
+      xhr.send(fd);
+    }
+
+    function previewPlay(el) {
+      const video = el.querySelector('video');
+      if (video) video.play().catch(() => {});
+    }
+
+    function previewStop(el) {
+      const video = el.querySelector('video');
+      if (video) {
+        video.pause();
+        video.currentTime = 0.5;
+      }
+    }
+
+    function goHome() {
+      const mainPlayer = document.getElementById('mainPlayer');
+      mainPlayer.pause();
+      mainPlayer.src = '';
+      document.getElementById('playerView').style.display = 'none';
+      document.getElementById('homeView').style.display = 'block';
+    }
+
+    function toggleModal(show) {
+      document.getElementById('upModal').style.display = show ? 'flex' : 'none';
+      if (!show) {
+        // Reset form
+        document.getElementById('title').value = '';
+        document.getElementById('desc').value = '';
+        document.getElementById('fIn').value = '';
+        document.getElementById('prog').style.display = 'none';
+        document.getElementById('pBar').style.width = '0%';
+      }
+    }
+
+    function closeModalOnOutsideClick(event) {
+      if (event.target === document.getElementById('upModal')) {
+        toggleModal(false);
+      }
+    }
+
+    function filterVideos() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = allVideos.filter(v => 
+        v.title.toLowerCase().includes(query) ||
+        (v.description && v.description.toLowerCase().includes(query))
+      );
+      renderGrid(filtered);
+    }
+
+    async function deleteVid(id) {
+      if (!confirm("Are you sure you want to delete this video?")) return;
+
+      try {
+        const res = await fetch(`/api/videos/${encodeURIComponent(id)}`, {
+          method: 'DELETE'
+        });
+
+        if (res.ok) {
+          await loadVideos();
+        } else {
+          alert("Failed to delete video.");
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("Error deleting video.");
+      }
+    }
+
+    function logout() {
+      if (confirm("Are you sure you want to logout?")) {
+        window.location.href = '/api/logout';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initialize
+    loadVideos();
+  </script>
+</body>
+</html>

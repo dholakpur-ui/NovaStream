@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
 <head>
     <title>NovaStream | Authorization</title>
@@ -34,6 +34,202 @@ document.addEventListener('keypress', function (e) {
         login();
     }
 });
+    </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaStream | Authorization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: #141414;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #ff7eb9;
+            box-shadow: 0 0 30px rgba(255, 126, 185, 0.3);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            color: #ff7eb9;
+            margin-bottom: 30px;
+            font-size: 28px;
+            letter-spacing: 1px;
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: #ff7eb9;
+            text-shadow: 0 0 15px #ff7eb9;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            margin: 12px 0;
+            background: #000;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #ff7eb9;
+            box-shadow: 0 0 10px rgba(255, 126, 185, 0.3);
+        }
+
+        button {
+            background: #ff7eb9;
+            color: black;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 126, 185, 0.5);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .error-msg {
+            color: #ff4d4d;
+            font-size: 14px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo">Nova<span>Stream</span></div>
+        <h2>AUTHORIZE</h2>
+        <form id="loginForm" onsubmit="login(event)">
+            <input 
+                type="email" 
+                id="email" 
+                placeholder="Admin Email"
+                required
+                autocomplete="email"
+            >
+            <input 
+                type="password" 
+                id="pass" 
+                placeholder="Password"
+                required
+                autocomplete="current-password"
+            >
+            <button type="submit" id="submitBtn">Enter Vault</button>
+        </form>
+        <p class="error-msg" id="errorMsg"></p>
+    </div>
+
+    <script>
+        async function login(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('pass').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const loginCard = document.querySelector('.login-card');
+
+            // Clear previous error
+            errorMsg.style.display = 'none';
+            
+            // Show loading state
+            submitBtn.textContent = 'Authenticating...';
+            loginCard.classList.add('loading');
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    submitBtn.textContent = '✓ Access Granted';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 500);
+                } else {
+                    throw new Error(data.message || 'Authentication failed');
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message || 'Unable to connect. Please try again.';
+                errorMsg.style.display = 'block';
+                submitBtn.textContent = 'Enter Vault';
+                loginCard.classList.remove('loading');
+                
+                // Shake animation on error
+                loginCard.style.animation = 'shake 0.5s';
+                setTimeout(() => {
+                    loginCard.style.animation = 'fadeIn 0.5s ease';
+                }, 500);
+            }
+        }
     </script>
 </body>
 </html>
