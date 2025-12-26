@@ -404,6 +404,16 @@
     color: black;
     box-shadow: 0 0 20px var(--pink-glow);
   }
+    .pin-card { position: relative; } /* Necessary for the badge positioning */
+    
+    .pin-card div { 
+      opacity: 0; 
+      transition: opacity 0.3s ease; 
+    }
+    
+    .pin-card:hover div { 
+      opacity: 1; 
+    }
   </style>
 </head>
 <body>

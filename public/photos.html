@@ -72,10 +72,30 @@
   <script>
     let scale = 1;
 
+    // async function load() {
+    //   try {
+    //     const res = await fetch('/api/images');
+    //     const data = await res.json();
+    //     const grid = document.getElementById('photoGrid');
+        
+    //     if (data.length === 0) {
+    //         grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #666; margin-top: 50px;">No images in your collection yet.</p>`;
+    //         return;
+    //     }
+
+    //     grid.innerHTML = data.map(p => `
+    //         <div class="pin-card" onclick="openZoom('${p.url}', '${p.id}')">
+    //         <img src="${p.url}" loading="lazy">
+    //         </div>
+    //     `).join('');
+    //   } catch (err) {
+    //       console.error("Load failed", err);
+    //   }
+    // }
     async function load() {
       try {
         const res = await fetch('/api/images');
-        const data = await res.json();
+        let data = await res.json(); // Use 'let' so we can sort the data
         const grid = document.getElementById('photoGrid');
         
         if (data.length === 0) {
@@ -83,9 +103,20 @@
             return;
         }
 
+        // --- NEW CLUSTERING LOGIC ---
+        // Sorts images alphabetically by collection name to group them together
+        data.sort((a, b) => {
+            const colA = (a.collection || "").toLowerCase();
+            const colB = (b.collection || "").toLowerCase();
+            return colA.localeCompare(colB);
+        });
+
         grid.innerHTML = data.map(p => `
             <div class="pin-card" onclick="openZoom('${p.url}', '${p.id}')">
-            <img src="${p.url}" loading="lazy">
+              <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:20px; font-size:10px; color:var(--pink); border:1px solid rgba(255,126,185,0.3); z-index:5;">
+                ${p.collection}
+              </div>
+              <img src="${p.url}" loading="lazy">
             </div>
         `).join('');
       } catch (err) {
@@ -160,168 +191,3 @@
   </script>
 </body>
 </html>
-
-
-
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NovaStream | Image Collections</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    :root {
-      --pink: #ff7eb9;
-      --bg: #0f0f0f;
-      --card-bg: #1e1e1e;
-      --text: #ffffff;
-      --border: #333333;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: 'Roboto', sans-serif;
-      margin: 0;
-      padding-top: 80px;
-    }
-
-    /* Navbar styling matches index.html */
-    .navbar {
-      position: fixed;
-      top: 0; width: 100%; height: 60px;
-      background: #0f0f0f; display: flex;
-      justify-content: space-between; align-items: center;
-      padding: 0 24px; border-bottom: 1px solid var(--border); z-index: 1000;
-    }
-
-    .logo { font-size: 22px; font-weight: 900; cursor: pointer; text-decoration: none; color: white; }
-    .logo span { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
-
-    /* Masonry Grid Logic */
-    .masonry-container {
-      columns: 5 250px; /* Pinterest magic */
-      column-gap: 15px;
-      width: 95%;
-      max-width: 1600px;
-      margin: 20px auto;
-    }
-
-    .pin-card {
-      break-inside: avoid;
-      margin-bottom: 15px;
-      background: var(--card-bg);
-      border-radius: 16px;
-      overflow: hidden;
-      position: relative;
-      transition: transform 0.3s ease;
-    }
-
-    .pin-card:hover { transform: scale(1.02); }
-    .pin-card img { width: 100%; display: block; }
-
-    .pin-overlay {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.5);
-      opacity: 0; transition: opacity 0.3s;
-      display: flex; flex-direction: column;
-      justify-content: space-between; padding: 15px;
-    }
-
-    .pin-card:hover .pin-overlay { opacity: 1; }
-
-    .btn-save {
-      background: var(--pink); color: black;
-      border: none; padding: 8px 15px;
-      border-radius: 20px; font-weight: bold; align-self: flex-end;
-    }
-
-    /* Action Buttons */
-    .btn-upload {
-      background: var(--pink); color: black; border: none;
-      padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer;
-    }
-
-    /* Modal Styling */
-    .modal {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.9); z-index: 2000;
-      align-items: center; justify-content: center;
-    }
-    .modal-content {
-      background: #1e1e1e; padding: 30px; border-radius: 20px;
-      width: 400px; border: 1px solid var(--border);
-    }
-    input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 8px; }
-  </style>
-</head>
-<body>
-
-  <header class="navbar">
-    <a href="/" class="logo">Nova<span>Stream</span></a>
-    <div style="display: flex; gap: 15px; align-items: center;">
-        <a href="/" style="color: var(--pink); text-decoration: none; font-size: 14px;">Back to Videos</a>
-        <button class="btn-upload" onclick="toggleModal(true)">
-            <i class="fas fa-plus"></i> Upload Photo
-        </button>
-    </div>
-  </header>
-
-  <main class="masonry-container" id="photoGrid">
-      </main>
-
-  <div class="modal" id="uploadModal">
-    <div class="modal-content">
-      <h2 style="color: var(--pink)">New Pin</h2>
-      <input type="text" id="imgTitle" placeholder="Give it a title...">
-      <input type="text" id="imgTag" placeholder="Collection (e.g. Cinematic, Nature)">
-      <input type="file" id="imgFile" accept="image/*">
-      <button class="btn-upload" style="width: 100%; margin-top: 10px;" onclick="handleImageUpload()">Publish Pin</button>
-      <button onclick="toggleModal(false)" style="background: none; border: none; color: gray; width: 100%; margin-top: 10px; cursor: pointer;">Cancel</button>
-    </div>
-  </div>
-
-  <script>
-    async function fetchPhotos() {
-        const res = await fetch('/api/images');
-        const photos = await res.json();
-        const grid = document.getElementById('photoGrid');
-        grid.innerHTML = photos.map(p => `
-            <div class="pin-card">
-                <img src="${p.url}" alt="">
-                <div class="pin-overlay">
-                    <button class="btn-save">${p.collection || 'Save'}</button>
-                    <div style="font-weight: bold;">${p.title}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    async function handleImageUpload() {
-        const file = document.getElementById('imgFile').files[0];
-        const title = document.getElementById('imgTitle').value;
-        const tag = document.getElementById('imgTag').value;
-
-        if(!file) return alert("Select an image");
-
-        const fd = new FormData();
-        fd.append('image', file);
-        fd.append('title', title);
-        fd.append('collection', tag);
-
-        const res = await fetch('/api/upload-image', { method: 'POST', body: fd });
-        if(res.ok) {
-            toggleModal(false);
-            fetchPhotos();
-        }
-    }
-
-    function toggleModal(show) {
-        document.getElementById('uploadModal').style.display = show ? 'flex' : 'none';
-    }
-
-    fetchPhotos();
-  </script>
-</body>
-</html> -->
