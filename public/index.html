@@ -12,14 +12,11 @@
   --border:#333;
 }
 button:active { transform: scale(0.95); }
-.video-card:active { transform: scale(0.98); }
+.video-card:active { transform: scale(0.99); }
 
 body {
-  margin:0;
-  background:var(--bg);
-  color:white;
-  font-family:Roboto,sans-serif;
-  padding-top:70px;
+  margin:0; background:var(--bg); color:white;
+  font-family:Roboto,sans-serif; padding-top:70px;
 }
 
 /* NAVBAR */
@@ -27,7 +24,7 @@ body {
   position:fixed;top:0;width:100%;height:60px;
   display:flex;align-items:center;justify-content:space-between;
   padding:0 24px;background:#0f0f0f;border-bottom:1px solid var(--border);
-  z-index:1000;
+  z-index:1000; box-sizing: border-box;
 }
 .logo{font-size:22px;font-weight:900;cursor:pointer}
 .logo span{color:var(--pink);text-shadow:0 0 10px var(--pink)}
@@ -45,26 +42,28 @@ body {
 .btn-logout{
   background:none;border:1px solid var(--border);
   color:#aaa;padding:8px 15px;border-radius:20px;cursor:pointer;
+  transition: 0.3s;
 }
+.btn-logout:hover { color: white; border-color: #ff4d4d; }
 
 /* GRID */
 .container{max-width:1800px;margin:auto;padding:24px}
 .video-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-  gap:25px;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:25px;
 }
-.video-card{cursor:pointer}
+.video-card{cursor:pointer; background: #141414; padding: 10px; border-radius: 12px; border: 1px solid transparent; transition: 0.3s;}
+.video-card:hover { border-color: var(--pink); background: #1a1a1a; }
+
 .thumbnail-box{
   aspect-ratio:16/9;border-radius:12px;overflow:hidden;
-  background:black;border:1px solid transparent;position:relative;
+  background:black; position:relative;
 }
 .thumbnail-box img{width:100%;height:100%;object-fit:cover}
-.video-card:hover .thumbnail-box{border-color:var(--pink)}
+
 .thumb-duration{
   position:absolute;bottom:8px;right:8px;
-  background:rgba(0,0,0,.8);
-  padding:3px 6px;border-radius:4px;font-size:11px;
+  background:rgba(0,0,0,.8); padding:3px 6px;border-radius:4px;
+  font-size:11px; font-weight: bold; color: white;
 }
 
 /* PLAYER */
@@ -72,7 +71,7 @@ body {
   display:none;max-width:1600px;margin:auto;
   padding:24px;gap:24px;grid-template-columns:1fr 380px;
 }
-.main-video-col video{width:100%;border-radius:12px;background:black}
+.main-video-col video{width:100%;border-radius:12px;background:black; cursor: pointer;}
 .sidebar-col{display:flex;flex-direction:column;gap:14px}
 
 /* MODAL */
@@ -84,8 +83,8 @@ body {
   background:#1e1e1e;width:460px;padding:30px;
   border-radius:18px;border:1px solid var(--pink);
 }
-input,textarea{width:100%;background:black;color:white;border:1px solid #333;padding:10px;border-radius:8px}
-#timeSlider{width:100%;accent-color:var(--pink)}
+input,textarea{width:100%;background:black;color:white;border:1px solid #333;padding:12px;border-radius:8px; margin-bottom: 10px; box-sizing: border-box;}
+#timeSlider{width:100%;accent-color:var(--pink); margin: 10px 0;}
 </style>
 </head>
 
@@ -98,16 +97,12 @@ input,textarea{width:100%;background:black;color:white;border:1px solid #333;pad
     <select id="playlistFilter" onchange="applyFilters()">
       <option value="all">All Playlists</option>
     </select>
-    <input id="searchInput" placeholder="Search..." oninput="applyFilters()">
+    <input id="searchInput" placeholder="Search Vault..." oninput="applyFilters()">
   </div>
 
-  <div>
-    <button class="btn-create" onclick="toggleModal(true)">
-      <i class="fas fa-plus"></i> Create
-    </button>
-    <button class="btn-logout" onclick="location.href='/api/logout'">
-      <i class="fas fa-sign-out-alt"></i>
-    </button>
+  <div style="display:flex; gap:10px;">
+    <button class="btn-create" onclick="toggleModal(true)"><i class="fas fa-plus"></i> Create</button>
+    <button class="btn-logout" onclick="location.href='/api/logout'"><i class="fas fa-sign-out-alt"></i></button>
   </div>
 </header>
 
@@ -118,160 +113,176 @@ input,textarea{width:100%;background:black;color:white;border:1px solid #333;pad
 <main id="playerView">
   <div class="main-video-col">
     <video id="mainPlayer" controls autoplay></video>
-    <h2 id="viewTitle"></h2>
-    <div id="viewDesc" style="background:#222;padding:15px;border-radius:10px;color:#ccc"></div>
+    <h2 id="viewTitle" style="margin: 20px 0 10px 0;"></h2>
+    <div id="viewDesc" style="background:#222;padding:15px;border-radius:10px;color:#ccc; line-height: 1.5;"></div>
   </div>
   <div class="sidebar-col" id="sidebarGrid"></div>
 </main>
 
-<!-- UPLOAD MODAL -->
 <div class="modal" id="upModal">
   <div class="modal-content">
-    <h2 style="color:var(--pink)">Upload Video</h2>
-    <input id="title" placeholder="Title">
-    <textarea id="desc" placeholder="Description"></textarea>
-    <input type="file" id="fIn" accept="video/*">
-    <button class="btn-create" style="width:100%" onclick="handleUpload()">Publish</button>
-    <button onclick="toggleModal(false)" style="background:none;border:none;color:#777;margin-top:10px">Cancel</button>
-    <div id="prog" style="display:none;margin-top:15px">
-      <div style="background:#333;height:8px;border-radius:5px">
-        <div id="pBar" style="background:var(--pink);height:100%;width:0%"></div>
+    <div id="prog" style="display:none; margin-top:10px;">
+      <div style="background:#333; height:5px; border-radius:5px;">
+        <div id="pBar" style="background:var(--pink); width:0%; height:100%; transition:0.3s;"></div>
       </div>
     </div>
-  </div>
+    <h2 style="color:var(--pink)">Upload to Vault</h2>
+    <input id="title" placeholder="Video Title">
+    <textarea id="desc" placeholder="Video Description..." rows="3"></textarea>
+    
+    <label style="font-size: 12px; color: #aaa;">Video File:</label>
+    <input type="file" id="fIn" accept="video/*" style="border:none; padding: 5px 0;">
+    
+    <label style="font-size: 12px; color: #aaa;">Custom Thumbnail (Optional):</label>
+    <input type="file" id="thumbIn" accept="image/*" style="border:none; padding: 5px 0;">
+    
+    <button class="btn-create" style="width:100%; margin-top:10px;" onclick="handleUpload()">Publish Video</button>
+    <button onclick="toggleModal(false)" style="background:none;border:none;color:#777;margin-top:10px; width: 100%; cursor:pointer;">Cancel</button>
+    </div>
 </div>
 
 <script>
 let allVideos=[];
 
-/* UTIL */
-const formatDuration=s=>{
-  if(!s)return"0:00";
-  return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+const formatDuration = s => {
+  if(!s || isNaN(s)) return "0:00";
+  const mins = Math.floor(s / 60);
+  const secs = Math.floor(s % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-/* LOAD */
 async function loadVideos(){
-  const r=await fetch('/api/videos');
-  if(r.status===401) return location.href='/login.html';
-  allVideos=await r.json();
+  const r = await fetch('/api/videos');
+  if(r.status === 401) return location.href = '/login.html'; // RESTORED LOGIN SHIELD
+  allVideos = await r.json();
   updatePlaylistDropdown();
   renderGrid(allVideos);
 }
 
-/* GRID */
 function renderGrid(list){
-  vGrid.innerHTML=list.map(v=>{
-    const thumb=v.url.replace('/upload/',`/upload/so_${v.thumbTime||0.5},w_500,c_fill,ar_16:9/`).replace('.mp4','.jpg');
-    return`
+  const grid = document.getElementById('vGrid');
+  grid.innerHTML = list.map(v => {
+    // Replace the 'const thumb = ...' line inside renderGrid with this:
+    const thumb = v.customThumbnail ? v.customThumbnail : v.url.replace('/upload/', `/upload/so_${v.thumbTime || 0.5},w_500,c_fill,ar_16:9/`).replace('.mp4', '.jpg');
+    return `
     <div class="video-card">
       <div class="thumbnail-box" onclick="openTheaterMode('${v.id}')">
         <img src="${thumb}">
         <div class="thumb-duration">${formatDuration(v.duration)}</div>
       </div>
-      <h3>${v.title}</h3>
-      <p style="color:#aaa;font-size:13px">${v.playlist||'Uncategorized'} • ${(v.size/1e6).toFixed(1)} MB</p>
-      <button onclick="openEditModal('${v.id}')">Edit</button>
-      <button onclick="deleteVid('${v.id}')" style="color:#ff4d4d">Delete</button>
-      <button onclick="navigator.clipboard.writeText('${v.url}'); alert('Link Copied!')" style="background:none; border:1px solid #444; color:#00d4ff; padding:5px 10px; border-radius:5px; cursor:pointer;">Share</button>
+      <h3 style="margin: 12px 0 4px 0; font-size: 16px;">${v.title}</h3>
+      <p style="color:#aaa; font-size:12px; margin-bottom: 12px;">${v.playlist || 'General'} • ${(v.size/1e6).toFixed(1)} MB</p>
+      <div style="display:flex; gap:8px;">
+        <button onclick="openEditModal('${v.id}')" style="background:none; border:1px solid #444; color:var(--pink); padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px;">Edit</button>
+        <button onclick="navigator.clipboard.writeText('${v.url}'); alert('Copied!')" style="background:none; border:1px solid #444; color:#00d4ff; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px;">Share</button>
+        <button onclick="deleteVid('${v.id}')" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:11px;">Delete</button>
+      </div>
     </div>`;
   }).join('');
 }
 
-/* FILTER */
 function applyFilters(){
-  let q=searchInput.value.toLowerCase();
-  let p=playlistFilter.value;
-  let list=allVideos;
-  if(p!=="all") list=list.filter(v=>v.playlist===p);
-  if(q) list=list.filter(v=>v.title.toLowerCase().includes(q));
+  let q = document.getElementById('searchInput').value.toLowerCase();
+  let p = document.getElementById('playlistFilter').value;
+  let list = allVideos;
+  if(p !== "all") list = list.filter(v => v.playlist === p);
+  if(q) list = list.filter(v => v.title.toLowerCase().includes(q));
   renderGrid(list);
 }
 
-/* PLAYLIST */
 function updatePlaylistDropdown(){
-  const sets=[...new Set(allVideos.map(v=>v.playlist).filter(Boolean))];
-  playlistFilter.innerHTML='<option value="all">All Playlists</option>'+
-    sets.map(p=>`<option value="${p}">${p}</option>`).join('');
+  const sets = [...new Set(allVideos.map(v => v.playlist).filter(Boolean))];
+  const dropdown = document.getElementById('playlistFilter');
+  dropdown.innerHTML = '<option value="all">All Playlists</option>' + 
+    sets.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
-/* PLAYER */
 function openTheaterMode(id){
-  mainPlayer.onclick = () => mainPlayer.paused ? mainPlayer.play() : mainPlayer.pause();
-  const v=allVideos.find(x=>x.id===id);
-  homeView.style.display='none';
-  playerView.style.display='grid';
-  mainPlayer.src=v.url;
-  viewTitle.innerText=v.title;
-  viewDesc.innerText=v.description||'No description';
-  sidebarGrid.innerHTML=allVideos.filter(x=>x.id!==id).map(s=>{
-    const t=s.url.replace('/upload/',`/upload/so_${s.thumbTime||0.5},w_160,c_fill,ar_16:9/`).replace('.mp4','.jpg');
-    return`
-    <div style="display:flex;gap:10px;cursor:pointer" onclick="openTheaterMode('${s.id}')">
-      <img src="${t}" style="width:120px;border-radius:8px">
-      <div>${s.title}</div>
+  const v = allVideos.find(x => x.id === id);
+  document.getElementById('homeView').style.display = 'none';
+  document.getElementById('playerView').style.display = 'grid';
+  window.scrollTo(0,0);
+  
+  const main = document.getElementById('mainPlayer');
+  main.src = v.url;
+  main.onclick = () => main.paused ? main.play() : main.pause();
+  
+  document.getElementById('viewTitle').innerText = v.title;
+  // RESTORED DESCRIPTION MAPPING
+  document.getElementById('viewDesc').innerText = v.description || 'No description provided.';
+  
+  const sidebarGrid = document.getElementById('sidebarGrid');
+  sidebarGrid.innerHTML = allVideos.filter(x => x.id !== id).map(s => {
+    const t = s.url.replace('/upload/', `/upload/so_${s.thumbTime || 0.5},w_180,c_fill,ar_16:9/`).replace('.mp4', '.jpg');
+    return `
+    <div style="display:flex; gap:10px; cursor:pointer; margin-bottom: 10px;" onclick="openTheaterMode('${s.id}')">
+      <div style="position:relative; flex-shrink:0;">
+        <img src="${t}" style="width:140px; border-radius:8px; border: 1px solid #333;">
+        <div class="thumb-duration" style="font-size:9px; padding:2px 4px;">${formatDuration(s.duration)}</div>
+      </div>
+      <div style="font-size:13px; font-weight:500; line-height:1.2;">${s.title}</div>
     </div>`;
   }).join('');
 }
 
-/* EDIT */
 function openEditModal(id){
-  document.querySelectorAll('.modal').forEach(m=>m.remove());
-  const v=allVideos.find(x=>x.id===id);
-  const m=document.createElement('div');
-  m.className='modal';
-  m.style.display='flex';
-  m.innerHTML=`
+  document.querySelectorAll('.modal:not(#upModal)').forEach(m => m.remove());
+  const v = allVideos.find(x => x.id === id);
+  const m = document.createElement('div');
+  m.className = 'modal'; m.style.display = 'flex';
+  m.innerHTML = `
   <div class="modal-content">
-    <h2 style="color:var(--pink)">Settings</h2>
-    <img id="thumbPreview" src="${v.url.replace('/upload/',`/upload/so_${v.thumbTime||0.5},w_500/`).replace('.mp4','.jpg')}" style="width:100%;border-radius:10px">
-    <input type="range" id="timeSlider" min="0" max="${Math.floor(v.duration||60)}" step="0.5"
-      value="${v.thumbTime||0.5}"
-      oninput="thumbPreview.src='${v.url}'.replace('/upload/', '/upload/so_'+this.value+',w_500/').replace('.mp4','.jpg')">
-    <input id="editPlaylist" value="${v.playlist||''}" placeholder="Playlist">
-    <button class="btn-create" onclick="saveEdit('${v.id}')">Save</button>
-    <button onclick="this.closest('.modal').remove()" style="background:none;border:none;color:#777">Cancel</button>
+    <h2 style="color:var(--pink); margin-top:0;">Video Settings</h2>
+    <img id="thumbPreview" src="${v.url.replace('/upload/', `/upload/so_${v.thumbTime || 0.5},w_500/`).replace('.mp4', '.jpg')}" style="width:100%; border-radius:10px; border: 1px solid #444;">
+    <p style="text-align:center; font-size:11px; color:#aaa; margin:10px 0;">Pick a thumbnail frame</p>
+    <input type="range" id="timeSlider" min="0" max="${Math.floor(v.duration || 60)}" step="0.5" value="${v.thumbTime || 0.5}"
+      oninput="document.getElementById('thumbPreview').src='${v.url}'.replace('/upload/', '/upload/so_'+this.value+',w_500/').replace('.mp4','.jpg')">
+    <input id="editPlaylist" value="${v.playlist || ''}" placeholder="Playlist Name (e.g. Movies)">
+    <button class="btn-create" onclick="saveEdit('${v.id}')" style="width:100%; margin-top: 10px;">Save All Changes</button>
+    <a href="${v.url}" download="${v.title}.mp4" style="text-decoration:none;"><button style="width:100%; margin-top:10px; background:#222; color:white; border:1px solid #444; padding:10px; border-radius:8px; cursor:pointer;">Download Video</button></a>
+    <button onclick="this.closest('.modal').remove()" style="background:none; border:none; color:#777; margin-top:10px; width:100%; cursor:pointer;">Cancel</button>
   </div>`;
   document.body.appendChild(m);
 }
 
-/* SAVE */
 async function saveEdit(id){
-  await fetch(`/api/videos/${encodeURIComponent(id)}/update`,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      thumbTime:timeSlider.value,
-      playlist:editPlaylist.value
-    })
+  const time = document.getElementById('timeSlider').value;
+  const playlist = document.getElementById('editPlaylist').value;
+  await fetch(`/api/videos/${encodeURIComponent(id)}/update`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ thumbTime: time, playlist: playlist })
   });
   location.reload();
 }
 
-/* UPLOAD */
 function handleUpload(){
-  const f=fIn.files[0]; if(!f) return alert("Select file");
-  const fd=new FormData();
-  fd.append('video',f);
-  fd.append('title',title.value);
-  fd.append('description',desc.value);
-  prog.style.display='block';
-  const x=new XMLHttpRequest();
-  x.upload.onprogress=e=>pBar.style.width=Math.round(e.loaded/e.total*100)+'%';
-  x.onload=()=>location.reload();
+  const f = document.getElementById('fIn').files[0];
+  const customThumb = document.getElementById('thumbIn').files[0]; // New
+  if(!f) return alert("Select a video file");
+
+  const fd = new FormData();
+  fd.append('video', f);
+  if(customThumb) fd.append('thumbnail', customThumb); // Append the image
+  fd.append('title', document.getElementById('title').value);
+  fd.append('description', document.getElementById('desc').value);
+
+  document.getElementById('prog').style.display = 'block';
+  const x = new XMLHttpRequest();
+  x.upload.onprogress = e => document.getElementById('pBar').style.width = Math.round(e.loaded/e.total*100)+'%';
+  x.onload = () => location.reload();
   x.open('POST','/api/upload');
   x.send(fd);
 }
 
-/* DELETE */
 async function deleteVid(id){
   if(confirm("Delete forever?")){
-    await fetch(`/api/videos/${encodeURIComponent(id)}`,{method:'DELETE'});
+    await fetch(`/api/videos/${encodeURIComponent(id)}`, { method: 'DELETE' });
     loadVideos();
   }
 }
 
-function toggleModal(s){upModal.style.display=s?'flex':'none'}
-function goHome(){location.reload()}
+function toggleModal(s){ document.getElementById('upModal').style.display = s ? 'flex' : 'none'; }
+function goHome(){ location.reload(); }
 
 loadVideos();
 </script>
