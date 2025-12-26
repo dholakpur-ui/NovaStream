@@ -102,7 +102,10 @@ app.get('/api/logout', (req, res) => {
 app.get('/', authShield, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
+// Add this near your other protected routes (line ~85)
+app.get('/photos.html', authShield, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'photos.html'));
+});
 // Protect Video List
 app.get('/api/videos', authShield, async (req, res) => {
   try {
@@ -196,7 +199,75 @@ app.delete('/api/videos/*', authShield, async (req, res) => {
     });
   }
 });
+// --- IMAGE COLLECTION API ---
 
+// 1. Fetch all images from Cloudinary
+app.get('/api/images', authShield, async (req, res) => {
+  try {
+    const result = await cloudinary.api.resources({
+      type: 'upload',
+      resource_type: 'image', // Tells Cloudinary to look for images
+      prefix: 'nova-collections/', // This organizes images in a separate folder
+      max_results: 100,
+      tags: true, // Used for "Collection" names
+      context: true // Used for "Titles"
+    });
+    
+    const images = result.resources.map(img => ({
+      id: img.public_id,
+      url: img.secure_url,
+      title: img.context?.custom?.title || 'Untitled',
+      collection: img.tags[0] || 'General',
+      uploadedAt: img.created_at
+    }));
+    
+    res.json(images);
+  } catch (err) {
+    console.error('Error fetching images:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch images' });
+  }
+});
+
+// 2. Upload an image to a Collection
+app.post('/api/upload-image', authShield, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image uploaded' });
+
+    const cld_upload_stream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        folder: "nova-collections",
+        tags: [req.body.collection || 'General'], // Using tags as collection names
+        context: `title=${req.body.title || 'Untitled'}`,
+      },
+      (error, result) => {
+        if (result) {
+          res.json({ success: true, image: result });
+        } else {
+          res.status(500).json({ success: false, message: error.message });
+        }
+      }
+    );
+    
+    streamifier.createReadStream(req.file.buffer).pipe(cld_upload_stream);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. Delete an Image
+app.delete('/api/images/*', authShield, async (req, res) => {
+  try {
+    const publicId = req.params[0];
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'image',
+      invalidate: true
+    });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Delete failed' });
+  }
+});
 // Start Server
 const server = app.listen(PORT, () => {
   console.log(`🚀 NovaStream Server Running on Port ${PORT}`);

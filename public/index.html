@@ -375,6 +375,35 @@
         display: none;
       }
     }
+    .main-footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 20px;
+    margin-top: 60px;
+    text-align: center;
+    background: #0a0a0a;
+  }
+  .footer-content h3 {
+    color: var(--pink);
+    margin-bottom: 15px;
+  }
+  .view-photos-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #1e1e1e;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 30px;
+    text-decoration: none;
+    border: 1px solid var(--pink);
+    transition: 0.3s;
+    font-weight: bold;
+  }
+  .view-photos-btn:hover {
+    background: var(--pink);
+    color: black;
+    box-shadow: 0 0 20px var(--pink-glow);
+  }
   </style>
 </head>
 <body>
@@ -642,5 +671,14 @@
     // Initialize
     loadVideos();
   </script>
+  <footer class="main-footer">
+    <div class="footer-content">
+      <h3>Discover More</h3>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Explore our curated visual library and cinematic frames.</p>
+      <a href="/photos.html" class="view-photos-btn">
+        <i class="fas fa-camera-retro"></i> View Photos
+      </a>
+    </div>
+  </footer>
 </body>
 </html>
