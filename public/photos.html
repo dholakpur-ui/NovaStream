@@ -3,6 +3,171 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaStream | Collections</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --pink: #ff7eb9; --bg: #0f0f0f; --card: #1e1e1e; --text: #fff; }
+    body { background: var(--bg); color: var(--text); font-family: 'Roboto', sans-serif; margin: 0; padding-top: 80px; }
+    
+    .navbar { position: fixed; top: 0; width: 100%; height: 60px; background: #000; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; border-bottom: 1px solid #333; z-index: 1000; }
+    .logo { font-size: 22px; font-weight: 900; text-decoration: none; color: #fff; }
+    .logo span { color: var(--pink); }
+
+    .nav-right { display: flex; align-items: center; gap: 20px; }
+    .back-link { color: #aaa; text-decoration: none; font-size: 14px; transition: 0.3s; }
+    .back-link:hover { color: var(--pink); }
+
+    .masonry-container { columns: 5 250px; column-gap: 15px; width: 95%; max-width: 1600px; margin: 0 auto; }
+    .pin-card { break-inside: avoid; margin-bottom: 15px; background: var(--card); border-radius: 16px; overflow: hidden; cursor: zoom-in; transition: 0.3s; }
+    .pin-card:hover { transform: scale(1.02); }
+    .pin-card img { width: 100%; display: block; }
+
+    #zoomOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; overflow: hidden; }
+    #expandedImg { max-width: 90%; max-height: 85%; transition: 0.25s ease; border-radius: 8px; cursor: grab; }
+    #expandedImg:active { cursor: grabbing; }
+    
+    .zoom-controls { position: fixed; bottom: 30px; display: flex; gap: 20px; background: rgba(255,255,255,0.1); padding: 12px 25px; border-radius: 40px; backdrop-filter: blur(10px); }
+    .zoom-btn { color: #fff; font-size: 20px; cursor: pointer; border: none; background: none; transition: 0.2s; }
+    .zoom-btn:hover { transform: scale(1.2); color: var(--pink); }
+
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; }
+    .modal-content { background: var(--card); padding: 30px; border-radius: 20px; width: 400px; border: 1px solid #333; }
+    input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; box-sizing: border-box;}
+    .btn-main { background: var(--pink); color: #000; border: none; padding: 12px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <a href="/" class="logo">Nova<span>Stream</span></a>
+    <div class="nav-right">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Videos</a>
+        <button class="btn-main" onclick="toggleModal(true)">+ Add Photo</button>
+    </div>
+  </header>
+
+  <main class="masonry-container" id="photoGrid"></main>
+
+  <div id="zoomOverlay" onclick="closeZoom()">
+    <img id="expandedImg" src="" data-id="" onclick="event.stopPropagation()">
+    <div class="zoom-controls" onclick="event.stopPropagation()">
+      <button class="zoom-btn" onclick="adjustZoom(0.2)"><i class="fas fa-search-plus"></i></button>
+      <button class="zoom-btn" onclick="adjustZoom(-0.2)"><i class="fas fa-search-minus"></i></button>
+      <button class="zoom-btn" style="color: #ff4d4d;" onclick="deleteImg()"><i class="fas fa-trash"></i></button>
+      <button class="zoom-btn" onclick="closeZoom()"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <div class="modal" id="upModal">
+    <div class="modal-content">
+      <h2 style="color: var(--pink); margin-top: 0;">New Pin</h2>
+      <input type="text" id="t" placeholder="Title">
+      <input type="text" id="c" placeholder="Collection Name (e.g. Nature)">
+      <input type="file" id="f" accept="image/*">
+      <button class="btn-main" style="width: 100%;" onclick="upload()">Publish Pin</button>
+      <button onclick="toggleModal(false)" style="background:none; border:none; color:gray; width:100%; margin-top:10px; cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    let scale = 1;
+
+    async function load() {
+      try {
+        const res = await fetch('/api/images');
+        const data = await res.json();
+        const grid = document.getElementById('photoGrid');
+        
+        if (data.length === 0) {
+            grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #666; margin-top: 50px;">No images in your collection yet.</p>`;
+            return;
+        }
+
+        grid.innerHTML = data.map(p => `
+            <div class="pin-card" onclick="openZoom('${p.url}', '${p.id}')">
+            <img src="${p.url}" loading="lazy">
+            </div>
+        `).join('');
+      } catch (err) {
+          console.error("Load failed", err);
+      }
+    }
+
+    function openZoom(u, id) {
+      const img = document.getElementById('expandedImg');
+      img.src = u; 
+      img.dataset.id = id;
+      document.getElementById('zoomOverlay').style.display = 'flex';
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      scale = 1; 
+      apply();
+    }
+
+    function closeZoom() { 
+        document.getElementById('zoomOverlay').style.display = 'none'; 
+        document.body.style.overflow = 'auto';
+    }
+
+    function adjustZoom(a) { 
+        scale += a; 
+        if (scale < 0.5) scale = 0.5;
+        if (scale > 3) scale = 3;
+        apply(); 
+    }
+
+    function apply() { document.getElementById('expandedImg').style.transform = `scale(${scale})`; }
+
+    async function deleteImg() {
+      const id = document.getElementById('expandedImg').dataset.id;
+      if (confirm("Are you sure you want to delete this pin?")) {
+        const res = await fetch(`/api/images/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if(res.ok) {
+            closeZoom(); 
+            load();
+        }
+      }
+    }
+
+    async function upload() {
+      const fileInput = document.getElementById('f');
+      if (!fileInput.files[0]) return alert("Please select an image first!");
+
+      const fd = new FormData();
+      fd.append('image', fileInput.files[0]);
+      fd.append('title', document.getElementById('t').value || 'Untitled');
+      fd.append('collection', document.getElementById('c').value || 'General');
+
+      const btn = document.querySelector('.modal-content .btn-main');
+      btn.innerText = "Uploading...";
+      btn.disabled = true;
+
+      try {
+          const res = await fetch('/api/upload-image', { method: 'POST', body: fd });
+          if (res.ok) location.reload();
+          else alert("Upload failed");
+      } catch (err) {
+          alert("Error uploading");
+      } finally {
+          btn.innerText = "Publish Pin";
+          btn.disabled = false;
+      }
+    }
+
+    function toggleModal(s) { document.getElementById('upModal').style.display = s ? 'flex' : 'none'; }
+    
+    // Initialize
+    load();
+  </script>
+</body>
+</html>
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NovaStream | Image Collections</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -159,4 +324,4 @@
     fetchPhotos();
   </script>
 </body>
-</html>
+</html> -->
